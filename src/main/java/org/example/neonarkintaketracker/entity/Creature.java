@@ -1,8 +1,8 @@
 /*
   Name: Gloria Walls
   Instructor: Professor Jon-Mikel Pearson
-  Assignment: Project 2
-  Due Date: 03/28/2026
+  Assignment: Capstone Project
+  Due Date: 5/13/2026
   Course/Section: COSC 4301 – Section 1
   File Name: Creature.java
   Purpose: This is the model for the Creature Entity
@@ -14,8 +14,13 @@ import lombok.*;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,6 +28,7 @@ import java.time.LocalDateTime;
 @Entity
 @EntityListeners(AuditingEntityListener.class)
 @Table(name = "creatures")
+
 
 public class Creature {
     @Id
@@ -53,4 +59,22 @@ public class Creature {
     @CreatedDate
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+
+    @Builder.Default // Tell the builder to use the "Active" value
+    @Column(nullable = false, length = 30)
+    private String status = "ACTIVE";
+
+    @OneToMany(mappedBy = "creature", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Observation> observations = new ArrayList<>();
+
+    @Column(name = "last_fed_at")
+    private LocalDateTime lastFedAt;
+
+    @Column(name = "feeding_interval_hours")
+    private Integer feedingIntervalHours = 24; // Default to once a day
+
+    @OneToMany(mappedBy = "creature", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FeedingSchedule> feedingSchedules = new ArrayList<>();
+
 }

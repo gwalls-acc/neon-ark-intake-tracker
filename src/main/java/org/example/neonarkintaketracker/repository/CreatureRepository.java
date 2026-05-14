@@ -11,7 +11,12 @@
 package org.example.neonarkintaketracker.repository;
 import org.example.neonarkintaketracker.entity.Creature;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalTime;
+import java.util.List;
 
 // Simple CRUD + paging/sorting out of the box
 @Repository
@@ -26,4 +31,10 @@ public interface CreatureRepository extends JpaRepository<Creature, Long>{
     // delete(entity)      -> delete by passing the entity itself
 
     // Paging and sorting methods are also included automatically.
+
+    @Query("SELECT DISTINCT c FROM Creature c " +
+            "JOIN FETCH c.habitat " +
+            "JOIN c.feedingSchedules s " +
+            "WHERE s.feedingTime = :time")
+    List<Creature> findCreaturesByScheduledTime(@Param("time") LocalTime time);
 }

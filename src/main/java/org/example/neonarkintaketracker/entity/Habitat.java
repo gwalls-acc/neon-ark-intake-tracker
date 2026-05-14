@@ -25,6 +25,11 @@ import java.util.List;
 public class Habitat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    private String name;
+    private String zone;
+    private String environmentType;
+
     private Long id;
 
     @Column(nullable = false, length = 40)

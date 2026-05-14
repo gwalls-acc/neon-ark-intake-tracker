@@ -10,6 +10,10 @@
 
 package org.example.neonarkintaketracker.dto;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+
 public record CreatureResponse(   // Outgoing DTO for API responses.
                                   Long id,                   // Safe server-generated identifier.
                                   String name,               // Creature name.
@@ -18,5 +22,11 @@ public record CreatureResponse(   // Outgoing DTO for API responses.
                                   String condition,          // Condition for display.
                                   String notes,              // Notes returned by design choice.
                                   Long habitatId,            // Relationship returned as ID only.
-                                  String createdAt           // Timestamp formatted for display.
+                                  String createdAt,          // Timestamp formatted for display.
+                                  String status,              // status of record for soft delete
+                                  String habitatName,         // Habitat name
+                                  String habitatZone,         //Habitat zone
+                                  LocalDateTime lastFedAt,    // record of last feeding
+                                  List<LocalTime> feedingTimes
+
 ) {}
