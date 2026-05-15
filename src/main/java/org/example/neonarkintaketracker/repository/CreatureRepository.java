@@ -20,7 +20,7 @@ import java.util.List;
 
 // Simple CRUD + paging/sorting out of the box
 @Repository
-public interface CreatureRepository extends JpaRepository<Creature, Long>{
+public interface CreatureRepository extends JpaRepository<Creature, Long> {
     // No extra methods needed for basic "read" functionality
 
     // Core CRUD methods you get for free:
@@ -33,8 +33,8 @@ public interface CreatureRepository extends JpaRepository<Creature, Long>{
     // Paging and sorting methods are also included automatically.
 
     @Query("SELECT DISTINCT c FROM Creature c " +
-            "JOIN FETCH c.habitat " +
-            "JOIN c.feedingSchedules s " +
+            "JOIN FETCH c.habitat " +             // Makes sure habitat is loaded
+            "JOIN FETCH c.feedingSchedules s " +  // Makes sure schedules are loaded
             "WHERE s.feedingTime = :time")
     List<Creature> findCreaturesByScheduledTime(@Param("time") LocalTime time);
 }

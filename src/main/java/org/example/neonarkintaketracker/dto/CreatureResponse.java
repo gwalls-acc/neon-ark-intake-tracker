@@ -27,6 +27,7 @@ public record CreatureResponse(   // Outgoing DTO for API responses.
                                   String habitatName,         // Habitat name
                                   String habitatZone,         //Habitat zone
                                   LocalDateTime lastFedAt,    // record of last feeding
-                                  List<LocalTime> feedingTimes
+                                  List<String> feedingTimes,
+                                  List<String> observations
 
 ) {}

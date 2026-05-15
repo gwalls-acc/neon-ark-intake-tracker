@@ -22,7 +22,9 @@ import java.util.Scanner;
 
 public class Menu {
     private final Scanner scanner;
-    private final ObjectMapper mapper = new ObjectMapper();
+
+  private final ObjectMapper objectMapper = new ObjectMapper()
+          .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
     private final Runnable shutdownTask; // This stores the exit logic
 
     // Update constructor to accept the lambda
@@ -51,9 +53,8 @@ public class Menu {
             System.out.println("5. Remove creature");
             System.out.println("6. View creature observations/notes");
             System.out.println("7. Find creatures by feeding time");
-            System.out.println("8. Record Feeding");
             System.out.println("\n--- Admin Only ---");
-            System.out.println("9. View all system users");
+            System.out.println("8. View all system users");
             System.out.println("\n0. Exit");
             System.out.println("-------------------------------------");
             System.out.print("Select an option:");
@@ -88,22 +89,17 @@ public class Menu {
 
                 case 6:
                     // Main menu option 6 - View creature observations/notes";
-
+                    viewCreatureObservations();
                     break;
 
 
                 case 7:
                     // Main menu option 7 - Find creatures by feeding time
-                    System.out.println("case 7");
+                    findCreaturesToFeedAtATime();
                     break;
+
 
                 case 8:
-                    //Main menu option 8 - Record Feeding
-                    recordFeeding();
-                    break;
-
-
-                case 9:
                     //   Main menu option 8 -  View all system users
                     viewAdminUserList();
                     break;
@@ -124,42 +120,50 @@ public class Menu {
 
     //Main menu option 1 - view all creatures
     private void viewAllCreatures() {
-        System.out.println("\n\n" + "-".repeat(90));
+        boolean backToMain = false;
+        while (!backToMain) {
 
-        System.out.println("[ 3.1 ] View All Creatures ");
-        System.out.println("-".repeat(90));
+            System.out.println("\n\n" + "-".repeat(90));
 
-        try {
-            String json = ApiClient.sendGet("/creatures");
+            System.out.println("[ 3.1 ] View All Creatures ");
+            System.out.println("-".repeat(90));
+
+            try {
+                String json = ApiClient.sendGet("/creatures");
 
 
-            List<CreatureResponse> creatures = mapper.readValue(json, new TypeReference<List<CreatureResponse>>(){});
+                List<CreatureResponse> creatures = objectMapper.readValue(json, new TypeReference<List<CreatureResponse>>() {
+                });
 
-            String format = "| %-6s | %-20s | %-25s | %-12s |%n";
-            System.out.format("+--------+----------------------+---------------------------+--------------+%n");
-            System.out.format(format, "ID", "NAME", "SPECIES", "STATUS");
-            System.out.format("+--------+----------------------+----------------------------+--------------+%n");
+                String format = "| %-6s | %-20s | %-25s | %-12s |%n";
+                System.out.format("+--------+----------------------+---------------------------+--------------+%n");
+                System.out.format(format, "ID", "NAME", "SPECIES", "STATUS");
+                System.out.format("+--------+----------------------+----------------------------+--------------+%n");
 
-            for (CreatureResponse c : creatures) {
-                System.out.format(format, c.id(), c.name(), c.species(), c.status());
+                for (CreatureResponse c : creatures) {
+                    System.out.format(format, c.id(), c.name(), c.species(), c.status());
+                }
+                System.out.format("+--------+----------------------+---------------------------+--------------+%n");
+
+            } catch (java.net.ConnectException e) {
+                // Specifically identifies a connection issue without mentioning the port or server type
+                System.out.println("\n[SYSTEM ERROR]");
+                System.out.println("Status: Service Unreachable.");
+                System.out.println("Detail: The internal management service is not responding.");
+                System.out.println("Action: Ensure the backend infrastructure is active and try again.");
+            } catch (Exception e) {
+
+                //Handles data parsing or other logic errors
+                System.out.println("\n[SYSTEM ERROR]");
+                System.out.println("Status: Data Retrieval Failure.");
+                System.out.println("Detail: The system encountered an error while processing the registry list.");
+                System.out.println("Action: Please refresh the menu or contact a system administrator if the issue persists.");
             }
-            System.out.format("+--------+----------------------+---------------------------+--------------+%n");
 
-        } catch (java.net.ConnectException e) {
-            // Specifically identifies a connection issue without mentioning the port or server type
-            System.out.println("\n[SYSTEM ERROR]");
-            System.out.println("Status: Service Unreachable.");
-            System.out.println("Detail: The internal management service is not responding.");
-            System.out.println("Action: Ensure the backend infrastructure is active and try again.");
-        } catch (Exception e) {
-            // Handles data parsing or other logic errors
-            System.out.println("\n[SYSTEM ERROR]");
-            System.out.println("Status: Data Retrieval Failure.");
-            System.out.println("Detail: The system encountered an error while processing the registry list.");
-            System.out.println("Action: Please refresh the menu or contact a system administrator if the issue persists.");
+            System.out.println("-----------Return to Main Menu--------------");
+            backToMain = InputHelper.getConfirmation(scanner, "Return to Main Menu?");
         }
     }
-
     //Main menu option 2
     private void viewCreatureByID(Scanner scanner){
         boolean backToMain = false;
@@ -184,7 +188,7 @@ public class Menu {
                 String json = ApiClient.sendGet("/creatures/" + input);
 
                 // 2. Map JSON to a single CreatureResponse record
-                CreatureResponse c = mapper.readValue(json, CreatureResponse.class);
+                CreatureResponse c = objectMapper.readValue(json, CreatureResponse.class);
 
                 // 3. Display as a "Profile Card"
                 System.out.println("\n--- ENTITY PROFILE ---");
@@ -259,11 +263,11 @@ public class Menu {
 
                     // 3. Send to API
                     System.out.println("\n[SYSTEM] Transmitting data to secure server...");
-                    String requestBody = mapper.writeValueAsString(request);
+                    String requestBody = objectMapper.writeValueAsString(request);
                     String responseJson = ApiClient.sendPost("/creatures", requestBody);
 
                     // 4. Handle Response
-                    CreatureResponse created = mapper.readValue(responseJson, CreatureResponse.class);
+                    CreatureResponse created = objectMapper.readValue(responseJson, CreatureResponse.class);
                     System.out.println("\n[SUCCESS] Entity registered successfully!");
                     System.out.printf("Registry ID assigned: %s%n", created.id());
 
@@ -299,7 +303,7 @@ public class Menu {
             try {
                 // 2. Fetch the CURRENT record first
                 String currentJson = ApiClient.sendGet("/creatures/" + id);
-                CreatureResponse current = mapper.readValue(currentJson, CreatureResponse.class);
+                CreatureResponse current = objectMapper.readValue(currentJson, CreatureResponse.class);
                 String oldName = current.name();
 
                 // 3. Prompt for the NEW name
@@ -350,7 +354,7 @@ public class Menu {
         try {
             // 2. Fetch current details to show the user
             String currentJson = ApiClient.sendGet("/creatures/" + id);
-            CreatureResponse current = mapper.readValue(currentJson, CreatureResponse.class);
+            CreatureResponse current = objectMapper.readValue(currentJson, CreatureResponse.class);
 
             // Check if it's already inactive
             if ("Inactive".equalsIgnoreCase(current.status())) {
@@ -388,6 +392,35 @@ public class Menu {
         }
     }
 
+ //Main menu option 6 - View creature observations
+    private void viewCreatureObservations() {
+        boolean backToMain = false;
+        while (!backToMain) {
+            System.out.print("Enter Creature ID to view history: ");
+            String id = scanner.nextLine();
+
+
+            try {
+                String path = "/creatures/" + id + "/observations";
+                String json = ApiClient.sendGet(path);
+                // Since this is ONE creature, we don't need a TypeReference List
+                CreatureResponse creature = objectMapper.readValue(json, CreatureResponse.class);
+
+                System.out.println("\n--- Observation History for " + creature.name() + " ---");
+                // Loop through and print your observations here
+                creature.observations().forEach(obs -> System.out.println("- " + obs));
+
+            } catch (Exception e) {
+                System.out.println("Error retrieving observations: " + e.getMessage());
+            }
+
+            System.out.println("-----------Return to Main Menu--------------");
+            backToMain = InputHelper.getConfirmation(scanner, "Return to Main Menu?");
+        }
+    }
+
+
+
     //Main menu option 7 - find creatures to feed specific time
     private void findCreaturesToFeedAtATime() {
         boolean backToMain = false;
@@ -407,7 +440,10 @@ public class Menu {
 
             try {
                 // 1. Send the request with the query parameter
-                String json = ApiClient.sendGet("/feedings?time=" + timeInput);
+
+               String json = ApiClient.sendGet("/creatures/feedings?time=" + timeInput);
+
+                System.out.println("DEBUG - Server sent: " + json);
 
                 // 2. Check the response type
                 // Your requirement: If empty, include a “none need attending” message.
@@ -416,7 +452,7 @@ public class Menu {
                     System.out.println("All local bio-rhythms are within acceptable parameters.");
                 } else {
                     // 3. Parse the JSON list into CreatureResponse objects
-                    List<CreatureResponse> checklist = mapper.readValue(json,
+                    List<CreatureResponse> checklist = objectMapper.readValue(json,
                             new java.util.concurrent.CopyOnWriteArrayList<CreatureResponse>() {
                             }.getClass().getGenericSuperclass() != null ?
                                     new com.fasterxml.jackson.core.type.TypeReference<List<CreatureResponse>>() {
@@ -440,10 +476,12 @@ public class Menu {
 
             } catch (RuntimeException e) {
                 // This catches the 400 Bad Request error from your ApiClient
-                System.out.println("\n[SYSTEM ERROR]: Invalid time format. Please use 24-hour HH:MM.");
+                e.printStackTrace();
+                //System.out.println("\n[SYSTEM ERROR]: Invalid time format. Please use 24-hour HH:MM.");
             } catch (Exception e) {
                 // This catches general connection issues
-                System.out.println("\n[UPLINK ERROR]: Could not reach the Neon Ark server.");
+                //System.out.println("\n[UPLINK ERROR]: Could not reach the Neon Ark server.");
+                e.printStackTrace();
             }
             System.out.println("\n-----------Return to Main Menu--------------");
             backToMain = InputHelper.getConfirmation(scanner, "Return to Main Menu?");
@@ -452,43 +490,7 @@ public class Menu {
 
 
 
-
-  //Main menu option 8 - record Feeding
-    private void recordFeeding() {
-        boolean backToMain = false;
-        while (!backToMain) {
-        System.out.println("\n" + "=".repeat(50));
-        System.out.println("[ 8.1 ] Record Feeding Event");
-        System.out.println("=".repeat(50));
-
-        String id = InputHelper.getRequiredIntAsString(scanner, "Enter Entity ID: ");
-        if (id.equalsIgnoreCase("q")) return;
-
-        try {
-            // 1. Show current status
-            String json = ApiClient.sendGet("/creatures/" + id);
-            CreatureResponse current = mapper.readValue(json, CreatureResponse.class);
-
-            System.out.println("ENTITY: " + current.name());
-            System.out.println("LAST FED: " + (current.lastFedAt() != null ? current.lastFedAt() : "Never Recorded"));
-
-            // 2. Confirm Action
-            if (InputHelper.getConfirmation(scanner, "Confirm nutrient dispersal for this entity?")) {
-                ApiClient.sendPatch("/creatures/" + id + "/feed", "");
-                System.out.println("\n[SUCCESS] Feeding recorded. Bio-rhythms stabilizing.");
-            }
-
-        } catch (Exception e) {
-            handleApiError(e);
-        }
-
-        System.out.println("\n-----------Return to Main Menu--------------");
-        backToMain = InputHelper.getConfirmation(scanner, "Return to Main Menu?");
-      }
-    }
-
-
-    // Main menu option 9 - view users
+    // Main menu option 8 - view users
     private void viewAdminUserList() {
         boolean backToMain = false;
         while (!backToMain) {
@@ -499,7 +501,7 @@ public class Menu {
         try {
             String json = ApiClient.sendGet("/admin/users");
             // Use TypeReference for List of DTOs
-            List<UserAdminResponse> users = mapper.readValue(json,
+            List<UserAdminResponse> users = objectMapper.readValue(json,
                     new TypeReference<List<UserAdminResponse>>(){});
 
             System.out.printf("%-25s | %-20s | %-15s%n", "NAME", "EMAIL", "ROLES");
@@ -550,7 +552,7 @@ public class Menu {
 
         try {
             String json = ApiClient.sendGet("/creatures/" + id + "/observations");
-            CreatureHistoryResponse history = mapper.readValue(json, CreatureHistoryResponse.class);
+            CreatureHistoryResponse history = objectMapper.readValue(json, CreatureHistoryResponse.class);
 
             System.out.println("\n" + "=".repeat(60));
             System.out.println("HISTORICAL RECORD: " + history.name().toUpperCase());

@@ -46,9 +46,6 @@ public class CreatureService {
      */
 
 
-  //  public List<Creature> getAllCreatures() {
-   //     return repository.findAll();
-  //  }
     public List<CreatureResponse> getAllCreatures() {
         return repository.findAll().stream()
                 .map(this::mapToResponse) // Convert each Entity to DTO
@@ -62,6 +59,28 @@ public class CreatureService {
 
     //map creature record to response object
     private CreatureResponse mapToResponse(Creature creature) {
+        // 1. Initialize an empty list to avoid null issues later
+        List<String> scheduleStrings = new java.util.ArrayList<>();
+
+        // 2. Grab the raw schedules from the creature entity
+        List<FeedingSchedule> rawSchedules = creature.getFeedingSchedules();
+
+        // 3. Null-Safe Check: Only loop if the list actually exists
+        if (rawSchedules != null) {
+            for (FeedingSchedule s : rawSchedules) {
+                // Since you only have feeding_time, we use that.
+                // Adjust the getter name if it's named differently (e.g., getFeedingTime())
+                scheduleStrings.add("Scheduled at: " + s.getFeedingTime());
+            }
+        }
+
+        var rawObs = creature.getObservations();
+        List<String> observationStrings = (rawObs == null)
+                ? java.util.Collections.emptyList()
+                : rawObs.stream()
+                .map(o -> o.toString()) // Use o.getNote() or similar if toString is too messy
+                .toList();
+
         return new CreatureResponse(
                 creature.getId(),
                 creature.getName(),
@@ -72,14 +91,16 @@ public class CreatureService {
                 creature.getHabitat().getId(),
                 creature.getCreatedAt().toString(),
                 creature.getStatus(),
-                creature.getLastFedAt()
+                creature.getHabitat().getName(),
+                creature.getHabitat().getZone(),
+                creature.getLastFedAt(),
+               scheduleStrings,
+                // Map the observations to Strings so they are easy to display
+                observationStrings
+
         );
     }
 
-    // Return one creature by id (Optional = may not exist)
-  //  public Optional<Creature> getCreatureById(Long id) {
- //       return repository.findById(id);
- //   }
 
     // Create anew creature and add it to the repository
     public CreatureResponse createCreature(CreatureRequest req) {
@@ -113,7 +134,30 @@ public class CreatureService {
 
     //Helper method to map data to response
     private CreatureResponse toResponse(
-            Creature c) {                              // Internal entity.
+            Creature c) {
+
+        // 1. Initialize an empty list to avoid null issues later
+        List<String> scheduleStrings = new java.util.ArrayList<>();
+
+        // 2. Grab the raw schedules from the creature entity
+        List<FeedingSchedule> rawSchedules = c.getFeedingSchedules();
+
+        // 3. Null-Safe Check: Only loop if the list actually exists
+        if (rawSchedules != null) {
+            for (FeedingSchedule s : rawSchedules) {
+                // Since you only have feeding_time, we use that.
+                // Adjust the getter name if it's named differently (e.g., getFeedingTime())
+                scheduleStrings.add("Scheduled at: " + s.getFeedingTime());
+            }
+        }
+
+        var rawObs = c.getObservations();
+        List<String> observationStrings = (rawObs == null)
+                ? java.util.Collections.emptyList()
+                : rawObs.stream()
+                .map(o -> o.toString()) // Use o.getNote() or similar if toString is too messy
+                .toList();
+        // Internal entity.
         return new CreatureResponse(
                 c.getId(),                                 // Extract ID.
                 c.getName(),                               // Extract name.
@@ -127,12 +171,13 @@ public class CreatureService {
                 c.getHabitat().getName(),
                 c.getHabitat().getZone(),
                 c.getLastFedAt(),
-                c.getFeedingSchedules().stream()
-                        .map(FeedingSchedule::getFeedingTime)
-                        .toList()
+                scheduleStrings,
+                // Map the observations to Strings so they are easy to display
+                observationStrings
 
         );
     }
+
 
 
     //rename creature
@@ -155,6 +200,7 @@ public class CreatureService {
         creature.setStatus("INACTIVE");
         repository.save(creature);
     }
+
     @Transactional
     public CreatureResponse recordFeeding(Long id) {
         Creature creature = repository.findById(id)
@@ -185,4 +231,36 @@ public class CreatureService {
                 .toList();
     }
 
+    public CreatureResponse getCreatureWithObservations(Long id) {
+        // 1. Find the creature or throw an error if the ID doesn't exist
+        Creature creature = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Creature not found with ID: " + id));
+
+        // 2. Map the data to your Record
+        return new CreatureResponse(
+                creature.getId(),
+                creature.getName(),
+                creature.getSpecies(),
+                creature.getDangerLevel(),
+                creature.getCondition(),
+                creature.getNotes(),
+                creature.getHabitat() != null ? creature.getHabitat().getId() : null,
+                creature.getCreatedAt() != null ? creature.getCreatedAt().toString() : null,
+                creature.getStatus(),
+                creature.getHabitat() != null ? creature.getHabitat().getName() : "N/A",
+                creature.getHabitat() != null ? creature.getHabitat().getZone() : "N/A",
+                creature.getLastFedAt(), // This might stay as LocalDateTime if you're comfortable
+
+                // 3. Map Feeding Times (Strings)
+                creature.getFeedingSchedules().stream()
+                        .map(s -> s.getFeedingTime().toString())
+                        .toList(),
+
+                // 4. Map Observations (Strings) - using your getCreatedAt()
+                creature.getObservations().stream()
+                        .sorted(java.util.Comparator.comparing(Observation::getCreatedAt).reversed())
+                        .map(obs -> obs.getCreatedAt().toString() + " - " + obs.getContent())
+                        .toList()
+        );
+    }
 }

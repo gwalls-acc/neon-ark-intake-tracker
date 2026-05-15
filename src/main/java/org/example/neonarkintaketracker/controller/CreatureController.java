@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -91,7 +92,8 @@ public class CreatureController {
         return ResponseEntity.noContent().build(); // Sends back 204
     }
 
-    @GetMapping("/api/feedings")
+
+    @GetMapping("/feedings")
     public ResponseEntity<?> getFeedingsByTime(@RequestParam String time) {
         try {
             // Enforce the HH:mm format specifically
@@ -99,8 +101,8 @@ public class CreatureController {
             List<CreatureResponse> results = service.getCreaturesForShift(searchTime);
 
             if (results.isEmpty()) {
-                // Requirement: If empty, include a “none need attending” message
-                return ResponseEntity.ok(Map.of("message", "None need attending", "results", results));
+                // Return an empty list instead of a Map to prevent CLI crashes
+                return ResponseEntity.ok(Collections.emptyList());
             }
 
             return ResponseEntity.ok(results);
@@ -108,6 +110,17 @@ public class CreatureController {
             return ResponseEntity.badRequest().body("Invalid format. Use 24-hour HH:MM (e.g., 14:30).");
         }
     }
+    @GetMapping("/{id}/observations")
+    public ResponseEntity<?> getCreatureWithObservations(@PathVariable Long id) {
+        // 1. Fetch the creature (and its observations) from the service
+        // Your service method should return a DTO that includes the observation list
+        CreatureResponse response = service.getCreatureWithObservations(id);
 
+        if (response == null) {
+            return ResponseEntity.status(404).body("Creature with ID " + id + " not found.");
+        }
+
+        return ResponseEntity.ok(response);
+    }
 
 }

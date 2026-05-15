@@ -77,4 +77,6 @@ public class Creature {
     @OneToMany(mappedBy = "creature", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FeedingSchedule> feedingSchedules = new ArrayList<>();
 
+
+
 }

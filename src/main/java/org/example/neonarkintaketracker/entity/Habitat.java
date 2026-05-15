@@ -23,13 +23,14 @@ import java.util.List;
 @Entity
 @Table(name = "habitats")
 public class Habitat {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
 
     private String name;
     private String zone;
     private String environmentType;
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, length = 40)
